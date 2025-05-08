@@ -1,0 +1,73 @@
+{
+    "variables": {
+        "a": {
+            "type": "i32"
+        },
+
+        "b": {
+            "type": "i32"
+        },
+
+        "sum": {
+            "type": "i32"
+        },
+
+        "diff": {
+            "type": "i32"
+        }
+    },
+
+    "operations": {
+        "add": {
+            "inputs": [
+                "a",
+                "b"
+            ],
+
+            "outputs": [
+                "sum"
+            ],
+
+            "module": {
+                "name": "c_add",
+                "args": [
+                    "a",
+                    "b",
+                    "sum"
+                ]
+            }
+        },
+
+        "sub": {
+            "inputs": [
+                "a",
+                "b"
+            ],
+
+            "outputs": [
+                "diff"
+            ],
+
+            "module": {
+                "name": "c_sub",
+                "args": [
+                    "a",
+                    "b",
+                    "diff"
+                ]
+            }
+        }
+    },
+
+    "modules": {
+        "c_add": {
+            "function": "c_add",
+            "device": "host"
+        },
+
+        "c_sub": {
+            "function": "c_sub",
+            "device": "cuda"
+        }
+    }
+}
