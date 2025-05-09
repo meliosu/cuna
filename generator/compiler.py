@@ -29,14 +29,7 @@ class Compiler:
             check=True
         )
 
-        subprocess.run(
-            f"{COMPILER} -o {BUILD_DIR}/libmodel.so {BUILD_DIR}/model.o -shared",
-            shell=True,
-            check=True
-        )
-
         if not keep_tmps:
             os.remove(f"{BUILD_DIR}/model.c")
             os.remove(f"{BUILD_DIR}/model.o")
-            os.remove(f"{BUILD_DIR}/libmodel.so")
             os.rmdir(f"{BUILD_DIR}")
