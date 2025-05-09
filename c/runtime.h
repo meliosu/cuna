@@ -1,7 +1,9 @@
 #include <stdint.h>
+#include <stdlib.h>
 
 void request(uint32_t id, void *variable);
 void submit(uint32_t id, void *variable);
+void launch();
 
 typedef int8_t i8;
 typedef uint8_t u8;
@@ -11,7 +13,7 @@ typedef int32_t i32;
 typedef uint32_t u32;
 typedef int64_t i64;
 typedef uint64_t u64;
-typedef void* pointer;
+typedef void *pointer;
 
 typedef enum {
     I8,
