@@ -1,10 +1,11 @@
-from generator import Generator
 import json
 import os
-from subprocess import call
 import sys
 
-DEBUG = True
+from subprocess import call
+
+from generator import Generator
+from compiler import Compiler
 
 if __name__ == "__main__":
     with open("../examples/example.json", "r") as example:
@@ -16,11 +17,5 @@ if __name__ == "__main__":
     generator = Generator()
     code = generator.generate(model, inputs, outputs)
 
-    if not os.path.exists("cuna-build"):
-        os.mkdir("cuna-build")
-
-    with open("cuna-build/model.c", "w+") as out:
-        out.write(code)
-
-    if DEBUG:
-        call(["clang-format", "cuna-build/model.c"])
+    compiler = Compiler()
+    compiler.compile(code, keep_tmps=True, debug=True)

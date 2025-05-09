@@ -14,13 +14,18 @@ class Generator:
 
         self._gen_runtime_incldue()
         self._gen_ids()
+        self._gen_operation_decls()
         self._gen_variables_and_operations_structs()
         self._gen_inputs_outputs()
         self._gen_model_definition()
         self._gen_module_decls()
         self._gen_operations()
+        self._gen_main()
 
         return self.out
+
+    def _gen_main(self):
+        self.out += "int main(){ launch(); }"
     
     def _gen_runtime_incldue(self):
         self.out += "#include \"runtime.h\"\n"
@@ -88,12 +93,12 @@ class Generator:
             self.out += f"{{"
 
             if var_producers is not None:
-                self.out += f"&{name}_producers,{len(var_producers)},"
+                self.out += f"{name}_producers,{len(var_producers)},"
             else:
                 self.out += f"NULL,0,"
 
             if var_consumers is not None:
-                self.out += f"&{name}_consumers,{len(var_consumers)},"
+                self.out += f"{name}_consumers,{len(var_consumers)},"
             else:
                 self.out += f"NULL,0,"
 
@@ -112,12 +117,12 @@ class Generator:
             self.out += f"{{"
 
             if op_inputs is not None:
-                self.out += f"&{name}_inputs,{len(op_inputs)},"
+                self.out += f"{name}_inputs,{len(op_inputs)},"
             else:
                 self.out += f"NULL,0,"
 
             if op_outputs is not None:
-                self.out += f"&{name}_outputs,{len(op_outputs)},"
+                self.out += f"{name}_outputs,{len(op_outputs)},"
             else:
                 self.out += f"NULL,0,"
 
@@ -133,6 +138,10 @@ class Generator:
             self.out += f"}},"
 
         self.out += f"}};"
+
+    def _gen_operation_decls(self):
+        for name, operation in self.model["operations"].items():
+            self.out += f"void op_{name}();"
 
     def _gen_operations(self):
         for name, operation in self.model["operations"].items():
@@ -196,12 +205,12 @@ class Generator:
     def _gen_model_definition(self):
         self.out += \
         f"Model model = {{" \
-        f".variables = &variables," \
+        f".variables = variables," \
         f".n_variables = {len(self.model['variables'].items())}," \
-        f".operations = &operations," \
+        f".operations = operations," \
         f".n_operations = {len(self.model['operations'].items())}," \
-        f".inputs = &inputs," \
+        f".inputs = inputs," \
         f".n_inputs = {len(self.inputs)}," \
-        f".outputs = &outputs," \
+        f".outputs = outputs," \
         f".n_outputs = {len(self.outputs)}," \
         f"}};"
