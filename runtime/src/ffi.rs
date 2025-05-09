@@ -25,6 +25,8 @@ pub enum Type {
     U32,
     I64,
     U64,
+    F32,
+    F64,
     Pointer,
 }
 
