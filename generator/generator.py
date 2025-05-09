@@ -39,10 +39,10 @@ class Generator:
         self.out += f"enum {{{','.join(operation_ids)}}};"
 
     def _gen_variables_and_operations_structs(self):
-        producers: dict[str, list[str]] = {}
-        consumers: dict[str, list[str]] = {}
-        inputs: dict[str, list[str]] = {}
-        outputs: dict[str, list[str]] = {}
+        producers = {}
+        consumers = {}
+        inputs = {}
+        outputs = {}
 
         for var_name, variable in self.model["variables"].items():
             for op_name, operation in self.model["operations"].items():
@@ -97,8 +97,7 @@ class Generator:
             else:
                 self.out += f"NULL,0,"
 
-            # TODO: fix
-            self.out += "I32"
+            self.out += variable["type"].capitalize()
 
             self.out += f"}},"
 
@@ -122,7 +121,14 @@ class Generator:
             else:
                 self.out += f"NULL,0,"
 
-            self.out += f"op_{name}"
+            self.out += f"op_{name},"
+
+            device = self.model["modules"][operation["module"]["name"]]["device"]
+
+            if device == "host":
+                self.out += "Host"
+            else:
+                self.out += "Cuda"
 
             self.out += f"}},"
 
