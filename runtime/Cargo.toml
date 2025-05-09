@@ -2,6 +2,10 @@
 name = "runtime"
 version = "0.1.0"
 edition = "2024"
-crate-type = ["cdylib"]
 
 [dependencies]
+rayon = "1.7.0"
+crossbeam = "0.8.2"
+
+[lib]
+crate-type = ["cdylib"]

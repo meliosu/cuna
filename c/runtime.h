@@ -1,10 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void request(uint32_t id, void *variable);
-void submit(uint32_t id, void *variable);
-void launch();
-
 typedef int8_t i8;
 typedef uint8_t u8;
 typedef int16_t i16;
@@ -70,3 +66,7 @@ typedef struct {
     uint32_t *outputs;
     size_t n_outputs;
 } Model;
+
+void request(uint32_t id, void *variable);
+void submit(uint32_t id, void *variable);
+void launch(Model *model);
