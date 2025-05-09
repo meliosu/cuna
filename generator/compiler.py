@@ -11,6 +11,7 @@ class Compiler:
         debug: bool,
         runtime: str,
         model_name: str,
+        ucodes: str,
         output_dir = ".",
         build_dir = "cuna-build"
     ):
@@ -37,7 +38,7 @@ class Compiler:
         )
 
         subprocess.run(
-            f"{COMPILER} -o {output_dir}/{model_name} {build_dir}/model.o {runtime}",
+            f"{COMPILER} -o {output_dir}/{model_name} {build_dir}/model.o {runtime} {ucodes}",
             shell=True,
             check=True
         )

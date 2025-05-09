@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="Dump generated code to stdout")
     parser.add_argument("--output-dir", default=".", help="Path to directory where the final executable will be saved")
     parser.add_argument("--build-dir", default="cuna-build", help="Path to temporary build directory")
+    parser.add_argument("--ucodes", required=True, help="Path to ucodes library/object file")
 
     args = parser.parse_args()
 
@@ -32,4 +33,5 @@ if __name__ == "__main__":
         model_name=model_name,
         output_dir=args.output_dir,
         build_dir=args.build_dir,
+        ucodes=args.ucodes
     )
