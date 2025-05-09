@@ -62,7 +62,7 @@ struct Operation {
     uint32_t *outputs;
     size_t n_outputs;
 
-    void (*procedure)();
+    void (*function)();
     Device device;
 };
 
@@ -96,15 +96,15 @@ enum {
 
 // Helper arrays
 
-size_t a_consumers[2] = { ID_add, ID_sub };
-size_t b_consumers[2] = { ID_add, ID_sub };
-size_t sum_producers[1] = { ID_add };
-size_t diff_producers[1] = { ID_sub };
+uint32_t a_consumers[2] = { ID_add, ID_sub };
+uint32_t b_consumers[2] = { ID_add, ID_sub };
+uint32_t sum_producers[1] = { ID_add };
+uint32_t diff_producers[1] = { ID_sub };
 
-size_t add_inputs[2] = { ID_a, ID_b };
-size_t add_outputs[1] = { ID_sum };
-size_t sub_inputs[2] = { ID_a, ID_b };
-size_t sub_outputs[1] = { ID_diff };
+uint32_t add_inputs[2] = { ID_a, ID_b };
+uint32_t add_outputs[1] = { ID_sum };
+uint32_t sub_inputs[2] = { ID_a, ID_b };
+uint32_t sub_outputs[1] = { ID_diff };
 
 Variable variables[] = {
     { NULL, 0, &a_consumers, 2, I32 },
@@ -118,12 +118,12 @@ Operation operations[] = {
     { &sub_inputs, 2, &sub_outputs, 1, op_sub, Host },
 };
 
-size_t inputs[2] = {
+uint32_t inputs[2] = {
     ID_a,
     ID_b,
 };
 
-size_t outputs[2] = {
+uint32_t outputs[2] = {
     ID_sum,
     ID_diff,
 };

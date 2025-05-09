@@ -61,13 +61,41 @@
 
     "modules": {
         "c_add": {
+            "device": "host",
             "function": "c_add",
-            "device": "host"
+            "args": [
+                {
+                    "type": "i32",
+                    "kind": "input"
+                },
+                {
+                    "type": "i32",
+                    "kind": "input"
+                },
+                {
+                    "type": "i32",
+                    "kind": "output"
+                }
+            ]
         },
 
         "c_sub": {
+            "device": "cuda",
             "function": "c_sub",
-            "device": "cuda"
+            "args": [
+                {
+                    "type": "i32",
+                    "kind": "input"
+                },
+                {
+                    "type": "i32",
+                    "kind": "input"
+                },
+                {
+                    "type": "i32",
+                    "kind": "output"
+                }
+            ]
         }
     }
 }
