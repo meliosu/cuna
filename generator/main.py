@@ -1,21 +1,37 @@
 import json
-import os
-import sys
-
-from subprocess import call
+import argparse
 
 from generator import Generator
 from compiler import Compiler
 
 if __name__ == "__main__":
-    with open("../examples/example.json", "r") as example:
-        model = json.load(example)
+    parser = argparse.ArgumentParser(description="Generate code from computational model and VW-task")
+    parser.add_argument("--model", required=True, help="Path to computational model")
+    parser.add_argument("--inputs", required=True, help="List of input variables")
+    parser.add_argument("--outputs", required=True, help="List of output variables")
+    parser.add_argument("--runtime", required=True, help="Path to runtime library")
+    parser.add_argument("--debug", action="store_true", help="Dump generated code to stdout")
+    parser.add_argument("--output-dir", default=".", help="Path to directory where the final executable will be saved")
+    parser.add_argument("--build-dir", default="cuna-build", help="Path to temporary build directory")
+    parser.add_argument("--ucodes", required=True, help="Path to ucodes library/object file")
 
-    inputs = { "a", "b" }
-    outputs = { "sum", "diff" }
+    args = parser.parse_args()
+
+    with open(args.model, "r") as model_file:
+        model = json.load(model_file)
+
+    model_name = args.model.removesuffix(".json")
 
     generator = Generator()
-    code = generator.generate(model, inputs, outputs)
+    code = generator.generate(model, args.inputs, args.outputs)
 
     compiler = Compiler()
-    compiler.compile(code, keep_tmps=True, debug=True)
+    compiler.compile(
+        code,
+        debug=args.debug,
+        runtime=args.runtime,
+        model_name=model_name,
+        output_dir=args.output_dir,
+        build_dir=args.build_dir,
+        ucodes=args.ucodes
+    )

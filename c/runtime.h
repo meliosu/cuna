@@ -1,10 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void request(uint32_t id, void *variable);
-void submit(uint32_t id, void *variable);
-void launch();
-
 typedef int8_t i8;
 typedef uint8_t u8;
 typedef int16_t i16;
@@ -13,6 +9,8 @@ typedef int32_t i32;
 typedef uint32_t u32;
 typedef int64_t i64;
 typedef uint64_t u64;
+typedef float f32;
+typedef double f64;
 typedef void *pointer;
 
 typedef enum {
@@ -24,6 +22,8 @@ typedef enum {
     U32,
     I64,
     U64,
+    F32,
+    F64,
     Pointer,
 } Type;
 
@@ -66,3 +66,7 @@ typedef struct {
     uint32_t *outputs;
     size_t n_outputs;
 } Model;
+
+void request(uint32_t id, void *variable);
+void submit(uint32_t id, void *variable);
+void launch(Model *model);

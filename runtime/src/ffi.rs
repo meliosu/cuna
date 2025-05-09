@@ -1,20 +1,21 @@
 #![allow(unused)]
 
 #[unsafe(no_mangle)]
-extern "C" fn request(id: u32, var: *mut u8) {
+pub unsafe extern "C" fn request(id: u32, var: *mut u8) {
     crate::run::request(id, var);
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn submit(id: u32, var: *mut u8) {
+pub unsafe extern "C" fn submit(id: u32, var: *mut u8) {
     crate::run::submit(id, var);
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn launch() {
-    crate::run::launch();
+pub unsafe extern "C" fn launch(model: &'static Model) {
+    crate::run::launch(model);
 }
 
+#[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub enum Type {
     I8,
@@ -25,9 +26,12 @@ pub enum Type {
     U32,
     I64,
     U64,
+    F32,
+    F64,
     Pointer,
 }
 
+#[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub enum Device {
     Host,
@@ -55,10 +59,4 @@ pub struct Model {
     pub operations: &'static [Operation],
     pub inputs: &'static [u32],
     pub outputs: &'static [u32],
-}
-
-#[allow(improper_ctypes)]
-unsafe extern "C" {
-    #[unsafe(no_mangle)]
-    pub static model: Model;
 }

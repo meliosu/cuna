@@ -25,7 +25,7 @@ class Generator:
         return self.out
 
     def _gen_main(self):
-        self.out += "int main(){ launch(); }"
+        self.out += "int main(){ launch(&model); }"
     
     def _gen_runtime_incldue(self):
         self.out += "#include \"runtime.h\"\n"
