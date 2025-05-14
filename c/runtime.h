@@ -67,6 +67,14 @@ typedef struct {
     size_t n_outputs;
 } Model;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void request(uint32_t id, void *variable);
 void submit(uint32_t id, void *variable);
 void launch(Model *model);
+
+#ifdef __cplusplus
+}
+#endif
