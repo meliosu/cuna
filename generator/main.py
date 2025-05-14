@@ -21,9 +21,13 @@ if __name__ == "__main__":
         model = json.load(model_file)
 
     model_name = args.model.removesuffix(".json")
+    
+    # Parse inputs and outputs as lists of strings separated by commas
+    input_vars = [input_var.strip() for input_var in args.inputs.split(",")]
+    output_vars = [output_var.strip() for output_var in args.outputs.split(",")]
 
     generator = Generator()
-    code = generator.generate(model, args.inputs, args.outputs)
+    code = generator.generate(model, input_vars, output_vars)
 
     compiler = Compiler()
     compiler.compile(

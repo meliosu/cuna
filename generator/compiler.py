@@ -1,5 +1,7 @@
 import os
 import subprocess
+import platform
+import shutil
 
 class Compiler:
     def __init__(self):
@@ -15,34 +17,61 @@ class Compiler:
         output_dir = ".",
         build_dir = "cuna-build"
     ):
-        COMPILER = "gcc"
+        # Determine compiler based on platform
+        if platform.system() == "Windows":
+            COMPILER = "nvcc" 
+        else:
+            COMPILER = "gcc"
+        
         OPT_LEVEL = 2
 
+        # Create build directory if it doesn't exist
         if not os.path.exists(build_dir):
-            os.mkdir(build_dir)
+            os.makedirs(build_dir, exist_ok=True)
         
-        with open(f"{build_dir}/model.c", "w+") as model:
+        # Create model.c file
+        model_path = os.path.join(build_dir, "model.cu")
+        with open(model_path, "w+") as model:
             model.write(code)
 
         if debug:
             subprocess.run(
-                f"clang-format {build_dir}/model.c",
+                f"clang-format {model_path}",
                 shell=True,
                 check=True
             )
 
+        # Compile model.c to object file
+        if platform.system() == "Windows":
+            model_obj = os.path.join(build_dir, "model.obj")
+        else:
+            model_obj = os.path.join(build_dir, "model.o")
+
+        include_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "c"))
+        
         subprocess.run(
-            f"{COMPILER} -O{OPT_LEVEL} -o {build_dir}/model.o -c {build_dir}/model.c -I../c/", 
+            f"{COMPILER} -O{OPT_LEVEL} -o {model_obj} -c {model_path} -I{include_path}", 
             shell=True,
             check=True
         )
 
+        # Link everything together
+        output_exe = os.path.join(output_dir, f"{model_name}")
+        if platform.system() == "Windows":
+            output_exe += ".exe"
+            
         subprocess.run(
-            f"{COMPILER} -o {output_dir}/{model_name} {build_dir}/model.o {runtime} {ucodes}",
+            f"{COMPILER} -o {output_exe} {model_obj} {ucodes} -L{runtime} -lruntime.dll",
             shell=True,
             check=True
         )
 
-        os.remove(f"{build_dir}/model.c")
-        os.remove(f"{build_dir}/model.o")
-        os.rmdir(f"{build_dir}")
+        # Clean up
+        if os.path.exists(model_path):
+            os.remove(model_path)
+            
+        if os.path.exists(model_obj):
+            os.remove(model_obj)
+            
+        if os.path.exists(build_dir) and os.path.isdir(build_dir):
+            shutil.rmtree(build_dir)

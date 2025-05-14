@@ -205,12 +205,12 @@ class Generator:
     def _gen_model_definition(self):
         self.out += \
         f"Model model = {{" \
-        f".variables = variables," \
-        f".n_variables = {len(self.model['variables'].items())}," \
-        f".operations = operations," \
-        f".n_operations = {len(self.model['operations'].items())}," \
-        f".inputs = inputs," \
-        f".n_inputs = {len(self.inputs)}," \
-        f".outputs = outputs," \
-        f".n_outputs = {len(self.outputs)}," \
+        f"variables," \
+        f"{len(self.model['variables'].items())}," \
+        f"operations," \
+        f"{len(self.model['operations'].items())}," \
+        f"inputs," \
+        f"{len(self.inputs)}," \
+        f"outputs," \
+        f"{len(self.outputs)}," \
         f"}};"
