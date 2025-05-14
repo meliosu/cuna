@@ -28,6 +28,10 @@ class Compiler:
         # Create build directory if it doesn't exist
         if not os.path.exists(build_dir):
             os.makedirs(build_dir, exist_ok=True)
+
+        # Create output directory if it doesn't exist
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
         
         # Create model.c file
         model_path = os.path.join(build_dir, "model.cu")
