@@ -1,5 +1,6 @@
 import json
 import argparse
+import os
 
 from generator import Generator
 from compiler import Compiler
@@ -20,7 +21,7 @@ if __name__ == "__main__":
     with open(args.model, "r") as model_file:
         model = json.load(model_file)
 
-    model_name = args.model.removesuffix(".json")
+    model_name = os.path.basename(args.model).removesuffix(".json")
     
     # Parse inputs and outputs as lists of strings separated by commas
     input_vars = [input_var.strip() for input_var in args.inputs.split(",")]

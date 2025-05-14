@@ -60,8 +60,13 @@ class Compiler:
         if platform.system() == "Windows":
             output_exe += ".exe"
             
+        # Fix the runtime library linking
+        # Use runtime as both a directory path and as a library name
+        runtime_dir = os.path.dirname(runtime)
+        runtime_lib = os.path.basename(runtime)
+        
         subprocess.run(
-            f"{COMPILER} -o {output_exe} {model_obj} {ucodes} -L{runtime} -lruntime.dll",
+            f"{COMPILER} -o {output_exe} {model_obj} {ucodes} -L{runtime_dir} -l{runtime_lib}",
             shell=True,
             check=True
         )
