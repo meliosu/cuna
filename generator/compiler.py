@@ -66,7 +66,8 @@ class Compiler:
         runtime_lib = os.path.basename(runtime)
         
         subprocess.run(
-            f"{COMPILER} -o {output_exe} {model_obj} {ucodes} -L{runtime_dir} -l{runtime_lib}",
+            f"{COMPILER} -o {output_exe} {model_obj} {ucodes} -L{runtime_dir} -l{runtime_lib}"
+            " -l ws2_32 -l userenv -l ntdll -l kernel32 -l advapi32",
             shell=True,
             check=True
         )
