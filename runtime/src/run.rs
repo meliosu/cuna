@@ -1,4 +1,5 @@
 use crate::ffi::{Model, Type};
+use std::ffi::CStr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::collections::{HashMap, HashSet};
 use crossbeam::channel::{Sender, Receiver, unbounded};
@@ -305,20 +306,18 @@ fn print_output_variables() {
                     let ptr_bytes = [value[0], value[1], value[2], value[3], 
                                      value[4], value[5], value[6], value[7]];
                     let ptr = usize::from_ne_bytes(ptr_bytes);
-                    let c_string_ptr = ptr as *const std::ffi::CString;
+                    let c_string_ptr = ptr as *const i8;
+                    let c_string = unsafe { CStr::from_ptr(c_string_ptr) };
                     
                     // Safety: We're assuming the pointer is valid and points to a properly
                     // null-terminated string that was created in parse_input_args or by an operation
-                    unsafe {
-                        if !c_string_ptr.is_null() {
-                            let c_string = &*c_string_ptr;
-                            match c_string.to_str() {
-                                Ok(s) => println!("{}", s),
-                                Err(_) => println!("<invalid utf8 string>"),
-                            }
-                        } else {
-                            println!("<null string>");
+                    if !c_string_ptr.is_null() {
+                        match c_string.to_str() {
+                            Ok(s) => println!("{}", s),
+                            Err(_) => println!("<invalid utf8 string>"),
                         }
+                    } else {
+                        println!("<null string>");
                     }
                 },
                 _ => panic!("Unsupported type"),
