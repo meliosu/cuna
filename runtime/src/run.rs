@@ -6,6 +6,8 @@ use crossbeam::channel::{Sender, Receiver, unbounded};
 use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
 use rayon::ThreadPoolBuilder;
+use std::time::Instant;
+use crate::load_balancer::{LoadBalancer, DynamicLoadBalancer};
 
 // Runtime state to track variables and operation status
 struct RuntimeState {
@@ -15,6 +17,7 @@ struct RuntimeState {
     completed_operations: RwLock<HashSet<u32>>,
     work_channel: (Mutex<Sender<u32>>, Mutex<Receiver<u32>>),
     all_done: AtomicBool,
+    load_balancer: Mutex<Box<dyn LoadBalancer>>,
 }
 
 // Global atomic reference to the runtime state
@@ -105,51 +108,68 @@ fn worker_function() {
     let receiver = runtime.work_channel.1.lock().unwrap().clone();
     
     while !runtime.all_done.load(Ordering::Relaxed) {
-        // Try to receive an operation to execute
-        match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
-            Ok(op_id) => {
-                // Skip if already completed (double check)
-                {
-                    let completed = runtime.completed_operations.read().unwrap();
-                    if completed.contains(&op_id) {
-                        continue;
-                    }
-                }
-                
-                // Execute the operation
-                let op = &runtime.model.operations[op_id as usize];
-                unsafe { (op.function)() };
-                
-                // Mark as completed
-                {
-                    let mut completed = runtime.completed_operations.write().unwrap();
-                    completed.insert(op_id);
-                    
-                    // Remove from ready set
-                    let mut ready = runtime.ready_operations.lock().unwrap();
-                    ready.remove(&op_id);
-                }
-                
-                // Check if any new operations are ready
-                check_ready_operations();
-                
-                // Check if all outputs are computed
-                let all_outputs_computed = runtime.model.outputs.iter()
-                    .all(|&output_id| {
-                        let vars = runtime.computed_variables.read().unwrap();
-                        vars.contains_key(&output_id)
-                    });
-                    
-                if all_outputs_computed {
-                    runtime.all_done.store(true, Ordering::Relaxed);
-                }
-            },
-            Err(_) => {
-                // Timeout, check if we're done
-                if runtime.all_done.load(Ordering::Relaxed) {
-                    break;
+        // Try to get an operation using the load balancer
+        let op_id_option = {
+            let ready_ops = runtime.ready_operations.lock().unwrap();
+            let load_balancer = runtime.load_balancer.lock().unwrap();
+            load_balancer.select_operation(&ready_ops, runtime.model)
+        };
+        
+        // If load balancer suggested an operation, use it; otherwise try the channel
+        let op_id = match op_id_option {
+            Some(id) => Some(id),
+            None => match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
+                Ok(id) => Some(id),
+                Err(_) => None,
+            }
+        };
+        
+        if let Some(op_id) = op_id {
+            // Skip if already completed (double check)
+            {
+                let completed = runtime.completed_operations.read().unwrap();
+                if completed.contains(&op_id) {
+                    continue;
                 }
             }
+            
+            // Execute the operation with timing
+            let op = &runtime.model.operations[op_id as usize];
+            let start_time = Instant::now();
+            unsafe { (op.function)() };
+            let execution_time = start_time.elapsed();
+            
+            // Update load balancer statistics
+            {
+                let mut load_balancer = runtime.load_balancer.lock().unwrap();
+                load_balancer.update_statistics(op_id, op.device, execution_time);
+            }
+            
+            // Mark as completed
+            {
+                let mut completed = runtime.completed_operations.write().unwrap();
+                completed.insert(op_id);
+                
+                // Remove from ready set
+                let mut ready = runtime.ready_operations.lock().unwrap();
+                ready.remove(&op_id);
+            }
+            
+            // Check if any new operations are ready
+            check_ready_operations();
+            
+            // Check if all outputs are computed
+            let all_outputs_computed = runtime.model.outputs.iter()
+                .all(|&output_id| {
+                    let vars = runtime.computed_variables.read().unwrap();
+                    vars.contains_key(&output_id)
+                });
+                
+            if all_outputs_computed {
+                runtime.all_done.store(true, Ordering::Relaxed);
+            }
+        } else if runtime.all_done.load(Ordering::Relaxed) {
+            break;
         }
     }
 }
@@ -338,6 +358,7 @@ pub(crate) fn launch(model: &'static Model) {
         completed_operations: RwLock::new(HashSet::new()),
         work_channel: (Mutex::new(sender), Mutex::new(receiver)),
         all_done: AtomicBool::new(false),
+        load_balancer: Mutex::new(Box::new(DynamicLoadBalancer::new())),
     });
     
     // Initialize the global runtime
