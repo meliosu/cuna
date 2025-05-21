@@ -9,6 +9,8 @@ typedef int32_t i32;
 typedef uint32_t u32;
 typedef int64_t i64;
 typedef uint64_t u64;
+typedef intptr_t isize;
+typedef uintptr_t usize;
 typedef float f32;
 typedef double f64;
 typedef void *pointer;
@@ -23,6 +25,8 @@ typedef enum {
     U32,
     I64,
     U64,
+    Isize,
+    Usize,
     F32,
     F64,
     Pointer,

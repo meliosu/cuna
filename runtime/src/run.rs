@@ -26,6 +26,7 @@ fn get_type_size(ty: &Type) -> usize {
         Type::I16 | Type::U16 => 2,
         Type::I32 | Type::U32 | Type::F32 => 4,
         Type::I64 | Type::U64 | Type::F64 | Type::Pointer => 8,
+        Type::Isize | Type::Usize => std::mem::size_of::<usize>(),
         Type::String => 8, // String is represented as a pointer (8 bytes)
     }
 }
@@ -201,6 +202,14 @@ fn parse_input_args() {
                 let val = arg.parse::<u64>().expect("Failed to parse u64 input");
                 val.to_ne_bytes().to_vec()
             },
+            Type::Isize => {
+                let val = arg.parse::<isize>().expect("Failed to parse isize input");
+                val.to_ne_bytes().to_vec()
+            },
+            Type::Usize => {
+                let val = arg.parse::<usize>().expect("Failed to parse usize input");
+                val.to_ne_bytes().to_vec()
+            },
             Type::F32 => {
                 let val = arg.parse::<f32>().expect("Failed to parse f32 input");
                 val.to_ne_bytes().to_vec()
@@ -270,6 +279,16 @@ fn print_output_variables() {
                     let val = u64::from_ne_bytes([value[0], value[1], value[2], value[3], 
                                                  value[4], value[5], value[6], value[7]]);
                     println!("{}", val);
+                },
+                Type::Isize => {
+                        let val = isize::from_ne_bytes([value[0], value[1], value[2], value[3], 
+                                                      value[4], value[5], value[6], value[7]]);
+                        println!("{}", val);
+                },
+                Type::Usize => {
+                        let val = usize::from_ne_bytes([value[0], value[1], value[2], value[3], 
+                                                      value[4], value[5], value[6], value[7]]);
+                        println!("{}", val);
                 },
                 Type::F32 => {
                     let val = f32::from_ne_bytes([value[0], value[1], value[2], value[3]]);
