@@ -13,6 +13,7 @@ pub trait LoadBalancer: Send + Sync {
     fn update_statistics(&mut self, op_id: u32, device: Device, execution_time: Duration);
     
     /// Get the current load for a specific device
+    #[allow(unused)]
     fn device_load(&self, device: Device) -> f32;
 }
 
@@ -77,7 +78,7 @@ impl LoadBalancer for DynamicLoadBalancer {
         }
     }
     
-    fn update_statistics(&mut self, op_id: u32, device: Device, execution_time: Duration) {
+    fn update_statistics(&mut self, _op_id: u32, device: Device, execution_time: Duration) {
         match device {
             Device::Host => {
                 self.cpu_operation_count += 1;

@@ -1,4 +1,4 @@
-use crate::ffi::{Model, Type, Device};
+use crate::ffi::{Model, Type};
 use std::ffi::CStr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::collections::{HashMap, HashSet};
