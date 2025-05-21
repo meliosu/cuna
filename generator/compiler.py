@@ -33,17 +33,27 @@ class Compiler:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
         
+        # Format code with clang-format if debug mode is enabled
+        if debug:
+            try:
+                # Use subprocess with pipes to format the code
+                clang_process = subprocess.run(
+                    ["clang-format"],
+                    input=code.encode(),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True
+                )
+                # Update code with formatted version
+                code = clang_process.stdout.decode()
+            except subprocess.CalledProcessError as e:
+                print(f"Warning: clang-format failed: {e}")
+                # Continue with unformatted code
+        
         # Create model.c file
         model_path = os.path.join(build_dir, "model.cu")
         with open(model_path, "w+") as model:
             model.write(code)
-
-        if debug:
-            subprocess.run(
-                f"clang-format {model_path}",
-                shell=True,
-                check=True
-            )
 
         # Compile model.c to object file
         if platform.system() == "Windows":
