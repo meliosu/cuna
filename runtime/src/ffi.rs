@@ -29,6 +29,7 @@ pub enum Type {
     F32,
     F64,
     Pointer,
+    String,
 }
 
 #[derive(Clone, Copy, Debug)]

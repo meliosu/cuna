@@ -12,6 +12,7 @@ typedef uint64_t u64;
 typedef float f32;
 typedef double f64;
 typedef void *pointer;
+typedef char *string;
 
 typedef enum {
     I8,
@@ -25,6 +26,7 @@ typedef enum {
     F32,
     F64,
     Pointer,
+    String,
 } Type;
 
 typedef enum {

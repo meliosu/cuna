@@ -26,6 +26,7 @@ fn get_type_size(ty: &Type) -> usize {
         Type::I16 | Type::U16 => 2,
         Type::I32 | Type::U32 | Type::F32 => 4,
         Type::I64 | Type::U64 | Type::F64 | Type::Pointer => 8,
+        Type::String => 8, // String is represented as a pointer (8 bytes)
     }
 }
 
@@ -208,7 +209,14 @@ fn parse_input_args() {
                 let val = arg.parse::<f64>().expect("Failed to parse f64 input");
                 val.to_ne_bytes().to_vec()
             },
-            
+            Type::String => {
+                // For strings, we need to allocate a null-terminated string on the heap
+                // and store its pointer
+                let c_string = std::ffi::CString::new(arg.clone()).expect("Failed to create CString");
+                // Leak the string to ensure it lives for the duration of the program
+                let ptr = Box::into_raw(Box::new(c_string)) as *const std::ffi::CString as usize;
+                ptr.to_ne_bytes().to_vec()
+            },
             _ => panic!("Unsupported type"),
         };
         
@@ -272,7 +280,27 @@ fn print_output_variables() {
                                                  value[4], value[5], value[6], value[7]]);
                     println!("{}", val);
                 },
-                
+                Type::String => {
+                    // For string type, the value contains a pointer to a CString
+                    let ptr_bytes = [value[0], value[1], value[2], value[3], 
+                                     value[4], value[5], value[6], value[7]];
+                    let ptr = usize::from_ne_bytes(ptr_bytes);
+                    let c_string_ptr = ptr as *const std::ffi::CString;
+                    
+                    // Safety: We're assuming the pointer is valid and points to a properly
+                    // null-terminated string that was created in parse_input_args or by an operation
+                    unsafe {
+                        if !c_string_ptr.is_null() {
+                            let c_string = &*c_string_ptr;
+                            match c_string.to_str() {
+                                Ok(s) => println!("{}", s),
+                                Err(_) => println!("<invalid utf8 string>"),
+                            }
+                        } else {
+                            println!("<null string>");
+                        }
+                    }
+                },
                 _ => panic!("Unsupported type"),
             }
         } else {
