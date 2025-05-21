@@ -223,7 +223,8 @@ fn parse_input_args() {
                 // and store its pointer
                 let c_string = std::ffi::CString::new(arg.clone()).expect("Failed to create CString");
                 // Leak the string to ensure it lives for the duration of the program
-                let ptr = Box::into_raw(Box::new(c_string)) as *const std::ffi::CString as usize;
+                let ptr = c_string.as_ptr() as usize;
+                std::mem::forget(c_string);
                 ptr.to_ne_bytes().to_vec()
             },
             _ => panic!("Unsupported type"),
