@@ -1,4 +1,4 @@
-use crate::ffi::{Model, Type};
+use crate::ffi::{Model, Type, Device};
 use std::ffi::CStr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::collections::{HashMap, HashSet};
@@ -14,6 +14,7 @@ struct RuntimeState {
     model: &'static Model,
     computed_variables: RwLock<HashMap<u32, Vec<u8>>>,
     ready_operations: Mutex<HashSet<u32>>,
+    in_progress_operations: Mutex<HashSet<u32>>, // Track operations currently being executed
     completed_operations: RwLock<HashSet<u32>>,
     work_channel: (Mutex<Sender<u32>>, Mutex<Receiver<u32>>),
     all_done: AtomicBool,
@@ -108,18 +109,46 @@ fn worker_function() {
     let receiver = runtime.work_channel.1.lock().unwrap().clone();
     
     while !runtime.all_done.load(Ordering::Relaxed) {
-        // Try to get an operation using the load balancer
+        // Atomically get an operation using the load balancer and mark it as in-progress
         let op_id_option = {
-            let ready_ops = runtime.ready_operations.lock().unwrap();
+            let mut ready_ops = runtime.ready_operations.lock().unwrap();
+            let mut in_progress = runtime.in_progress_operations.lock().unwrap();
             let load_balancer = runtime.load_balancer.lock().unwrap();
-            load_balancer.select_operation(&ready_ops, runtime.model)
+            
+            // Create a set of operations that are ready but not in progress
+            let available_ops: HashSet<_> = ready_ops
+                .difference(&in_progress)
+                .copied()
+                .collect();
+            
+            // Select the next operation
+            let selected = load_balancer.select_operation(&available_ops, runtime.model);
+            
+            // If an operation was selected, mark it as in-progress and remove from ready queue
+            if let Some(op_id) = selected {
+                ready_ops.remove(&op_id);
+                in_progress.insert(op_id);
+            }
+            
+            selected
         };
         
         // If load balancer suggested an operation, use it; otherwise try the channel
         let op_id = match op_id_option {
             Some(id) => Some(id),
             None => match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
-                Ok(id) => Some(id),
+                Ok(id) => {
+                    // When getting from channel, also mark as in-progress atomically
+                    let mut in_progress = runtime.in_progress_operations.lock().unwrap();
+                    
+                    // Double-check that this operation isn't already in progress
+                    if !in_progress.contains(&id) {
+                        in_progress.insert(id);
+                        Some(id)
+                    } else {
+                        None
+                    }
+                },
                 Err(_) => None,
             }
         };
@@ -129,6 +158,9 @@ fn worker_function() {
             {
                 let completed = runtime.completed_operations.read().unwrap();
                 if completed.contains(&op_id) {
+                    // Remove from in-progress if it was already completed
+                    let mut in_progress = runtime.in_progress_operations.lock().unwrap();
+                    in_progress.remove(&op_id);
                     continue;
                 }
             }
@@ -145,14 +177,14 @@ fn worker_function() {
                 load_balancer.update_statistics(op_id, op.device, execution_time);
             }
             
-            // Mark as completed
+            // Mark as completed and remove from in-progress
             {
                 let mut completed = runtime.completed_operations.write().unwrap();
                 completed.insert(op_id);
                 
-                // Remove from ready set
-                let mut ready = runtime.ready_operations.lock().unwrap();
-                ready.remove(&op_id);
+                // Remove from in-progress set
+                let mut in_progress = runtime.in_progress_operations.lock().unwrap();
+                in_progress.remove(&op_id);
             }
             
             // Check if any new operations are ready
@@ -355,6 +387,7 @@ pub(crate) fn launch(model: &'static Model) {
         model,
         computed_variables: RwLock::new(HashMap::new()),
         ready_operations: Mutex::new(HashSet::new()),
+        in_progress_operations: Mutex::new(HashSet::new()), // Initialize the in-progress set
         completed_operations: RwLock::new(HashSet::new()),
         work_channel: (Mutex::new(sender), Mutex::new(receiver)),
         all_done: AtomicBool::new(false),

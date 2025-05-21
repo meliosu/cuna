@@ -5,6 +5,8 @@ use std::time::{Duration, Instant};
 /// Interface for load balancing strategies
 pub trait LoadBalancer: Send + Sync {
     /// Select the next operation to execute based on current system load
+    /// Note: The provided ready_operations set should only contain operations that are
+    /// neither in-progress nor completed
     fn select_operation(&self, ready_operations: &HashSet<u32>, model: &Model) -> Option<u32>;
     
     /// Update device statistics after an operation completes
