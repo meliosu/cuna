@@ -178,7 +178,7 @@ class Generator:
             self.out += f"}}"
 
     def _gen_module_decls(self):
-        self.out += '#ifdef __cplusplus\nextern "C"{\n#endif\n'
+        self.out += '#ifdef __cplusplus\n\nextern "C"{\n#endif\n'
 
         for name, module in self.model["modules"].items():
             params = []
