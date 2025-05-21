@@ -111,8 +111,8 @@ class Generator:
         self.out += f"Operation operations[] = {{"
 
         for name, operation in self.model["operations"].items():
-            op_inputs = inputs[name]
-            op_outputs = outputs[name]
+            op_inputs = inputs[name] if name in inputs else None
+            op_outputs = outputs[name] if name in outputs else None
 
             self.out += f"{{"
 
