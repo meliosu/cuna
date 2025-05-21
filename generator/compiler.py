@@ -46,6 +46,7 @@ class Compiler:
                 )
                 # Update code with formatted version
                 code = clang_process.stdout.decode()
+                print(code)
             except subprocess.CalledProcessError as e:
                 print(f"Warning: clang-format failed: {e}")
                 # Continue with unformatted code

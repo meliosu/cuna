@@ -4,6 +4,7 @@ import os
 
 from generator import Generator
 from compiler import Compiler
+from pruner import Pruner  # New import
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate code from computational model and VW-task")
@@ -27,8 +28,12 @@ if __name__ == "__main__":
     input_vars = [input_var.strip() for input_var in args.inputs.split(",")]
     output_vars = [output_var.strip() for output_var in args.outputs.split(",")]
 
+    # Prune the model to remove unnecessary operations and variables
+    pruner = Pruner()
+    pruned_model = pruner.prune(model, set(input_vars), set(output_vars))
+
     generator = Generator()
-    code = generator.generate(model, input_vars, output_vars)
+    code = generator.generate(pruned_model, input_vars, output_vars)
 
     compiler = Compiler()
     compiler.compile(
