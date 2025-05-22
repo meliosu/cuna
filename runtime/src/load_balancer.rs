@@ -2,11 +2,9 @@ use crate::ffi::{Device, Model};
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
-/// Interface for load balancing strategies
+/// Interface for load balancing
 pub trait LoadBalancer: Send + Sync {
     /// Select the next operation to execute based on current system load
-    /// Note: The provided ready_operations set should only contain operations that are
-    /// neither in-progress nor completed
     fn select_operation(&self, ready_operations: &HashSet<u32>, model: &Model) -> Option<u32>;
     
     /// Update device statistics after an operation completes
@@ -23,7 +21,7 @@ pub struct DynamicLoadBalancer {
     gpu_load: f32,
     cpu_operation_count: u32,
     gpu_operation_count: u32,
-    decay_factor: f32, // Weight for new measurements vs history
+    decay_factor: f32, 
     last_cpu_time: Option<Instant>,
     last_gpu_time: Option<Instant>,
 }
@@ -35,7 +33,7 @@ impl DynamicLoadBalancer {
             gpu_load: 0.0,
             cpu_operation_count: 0,
             gpu_operation_count: 0,
-            decay_factor: 0.8, // 80% weight to new measurements
+            decay_factor: 0.8, 
             last_cpu_time: None,
             last_gpu_time: None,
         }
@@ -70,10 +68,8 @@ impl LoadBalancer for DynamicLoadBalancer {
         
         // Choose based on current load - prefer the less loaded device
         if self.cpu_load <= self.gpu_load {
-            // CPU is less loaded or equally loaded, prefer CPU operation
             cpu_ops.first().copied()
         } else {
-            // GPU is less loaded, prefer GPU operation
             gpu_ops.first().copied()
         }
     }

@@ -11,6 +11,7 @@ class Compiler:
         self, 
         code: str, 
         debug: bool,
+        keep_temp: bool,
         runtime: str,
         model_name: str,
         ucodes: str,
@@ -25,18 +26,15 @@ class Compiler:
         
         OPT_LEVEL = 2
 
-        # Create build directory if it doesn't exist
         if not os.path.exists(build_dir):
             os.makedirs(build_dir, exist_ok=True)
 
-        # Create output directory if it doesn't exist
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
         
         # Format code with clang-format if debug mode is enabled
         if debug:
             try:
-                # Use subprocess with pipes to format the code
                 clang_process = subprocess.run(
                     ["clang-format"],
                     input=code.encode(),
@@ -44,19 +42,16 @@ class Compiler:
                     stderr=subprocess.PIPE,
                     check=True
                 )
-                # Update code with formatted version
+                
                 code = clang_process.stdout.decode()
                 print(code)
             except subprocess.CalledProcessError as e:
                 print(f"Warning: clang-format failed: {e}")
-                # Continue with unformatted code
         
-        # Create model.c file
         model_path = os.path.join(build_dir, "model.cu")
         with open(model_path, "w+") as model:
             model.write(code)
 
-        # Compile model.c to object file
         if platform.system() == "Windows":
             model_obj = os.path.join(build_dir, "model.obj")
         else:
@@ -70,13 +65,10 @@ class Compiler:
             check=True
         )
 
-        # Link everything together
         output_exe = os.path.join(output_dir, f"{model_name}")
         if platform.system() == "Windows":
             output_exe += ".exe"
             
-        # Fix the runtime library linking
-        # Use runtime as both a directory path and as a library name
         runtime_dir = os.path.dirname(runtime)
         runtime_lib = os.path.basename(runtime)
         
@@ -86,6 +78,9 @@ class Compiler:
             shell=True,
             check=True
         )
+
+        if keep_temp:
+            return
 
         # Clean up
         if os.path.exists(model_path):

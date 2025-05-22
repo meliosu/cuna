@@ -5,23 +5,11 @@ class Pruner:
         pass
     
     def prune(self, model: dict, inputs: set[str], outputs: set[str]) -> dict:
-        """
-        Prunes the computational model by removing operations and variables
-        that don't contribute to calculating the output variables from input variables.
-        
-        Args:
-            model: The computational model with variables, operations, and modules
-            inputs: Set of input variable names
-            outputs: Set of output variable names
-            
-        Returns:
-            A pruned model with only necessary operations and variables
-        """
         # Clone the original model to avoid modifying it
         pruned_model = copy.deepcopy(model)
         
         # Mark all variables and operations that are needed to calculate outputs
-        needed_variables = set(inputs) | set(outputs)  # Start with inputs and outputs
+        needed_variables = set(inputs) | set(outputs) 
         needed_operations = set()
         
         # Traverse backward from outputs to mark all needed components

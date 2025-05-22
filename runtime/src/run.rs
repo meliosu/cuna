@@ -14,17 +14,16 @@ struct RuntimeState {
     model: &'static Model,
     computed_variables: RwLock<HashMap<u32, Vec<u8>>>,
     ready_operations: Mutex<HashSet<u32>>,
-    in_progress_operations: Mutex<HashSet<u32>>, // Track operations currently being executed
+    in_progress_operations: Mutex<HashSet<u32>>, 
     completed_operations: RwLock<HashSet<u32>>,
     work_channel: (Mutex<Sender<u32>>, Mutex<Receiver<u32>>),
     all_done: AtomicBool,
     load_balancer: Mutex<Box<dyn LoadBalancer>>,
 }
 
-// Global atomic reference to the runtime state
+// Runtime State
 static RUNTIME: std::sync::OnceLock<Arc<RuntimeState>> = std::sync::OnceLock::new();
 
-// Get the size of a type in bytes
 fn get_type_size(ty: &Type) -> usize {
     match ty {
         Type::I8 | Type::U8 => 1,
@@ -32,7 +31,7 @@ fn get_type_size(ty: &Type) -> usize {
         Type::I32 | Type::U32 | Type::F32 => 4,
         Type::I64 | Type::U64 | Type::F64 | Type::Pointer => 8,
         Type::Isize | Type::Usize => std::mem::size_of::<usize>(),
-        Type::String => 8, // String is represented as a pointer (8 bytes)
+        Type::String => 8, 
     }
 }
 
@@ -71,7 +70,6 @@ pub(crate) fn submit(id: u32, var: *mut u8) {
     check_ready_operations();
 }
 
-// Check which operations are ready to execute
 fn check_ready_operations() {
     let runtime = RUNTIME.get().expect("Runtime not initialized");
     
@@ -103,7 +101,6 @@ fn check_ready_operations() {
     }
 }
 
-// Worker function to execute operations
 fn worker_function() {
     let runtime = RUNTIME.get().expect("Runtime not initialized");
     let receiver = runtime.work_channel.1.lock().unwrap().clone();
@@ -182,7 +179,6 @@ fn worker_function() {
                 let mut completed = runtime.completed_operations.write().unwrap();
                 completed.insert(op_id);
                 
-                // Remove from in-progress set
                 let mut in_progress = runtime.in_progress_operations.lock().unwrap();
                 in_progress.remove(&op_id);
             }
@@ -206,7 +202,6 @@ fn worker_function() {
     }
 }
 
-// Parse command line arguments for input variables
 fn parse_input_args() {
     let runtime = RUNTIME.get().expect("Runtime not initialized");
     let args: Vec<String> = env::args().collect();
@@ -272,9 +267,8 @@ fn parse_input_args() {
                 val.to_ne_bytes().to_vec()
             },
             Type::String => {
-                // For strings, we need to allocate a null-terminated string on the heap
-                // and store its pointer
                 let c_string = std::ffi::CString::new(arg.clone()).expect("Failed to create CString");
+
                 // Leak the string to ensure it lives for the duration of the program
                 let ptr = c_string.as_ptr() as usize;
                 std::mem::forget(c_string);
@@ -283,13 +277,11 @@ fn parse_input_args() {
             _ => panic!("Unsupported type"),
         };
         
-        // Store the parsed input value
         let mut variables = runtime.computed_variables.write().unwrap();
         variables.insert(input_id, value);
     }
 }
 
-// Print the output variables to stdout
 fn print_output_variables() {
     let runtime = RUNTIME.get().expect("Runtime not initialized");
     let vars = runtime.computed_variables.read().unwrap();
@@ -354,15 +346,12 @@ fn print_output_variables() {
                     println!("{}", val);
                 },
                 Type::String => {
-                    // For string type, the value contains a pointer to a CString
                     let ptr_bytes = [value[0], value[1], value[2], value[3], 
                                      value[4], value[5], value[6], value[7]];
                     let ptr = usize::from_ne_bytes(ptr_bytes);
                     let c_string_ptr = ptr as *const i8;
                     let c_string = unsafe { CStr::from_ptr(c_string_ptr) };
                     
-                    // Safety: We're assuming the pointer is valid and points to a properly
-                    // null-terminated string that was created in parse_input_args or by an operation
                     if !c_string_ptr.is_null() {
                         match c_string.to_str() {
                             Ok(s) => println!("{}", s),
