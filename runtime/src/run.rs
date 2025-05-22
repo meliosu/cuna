@@ -70,6 +70,31 @@ pub(crate) fn submit(id: u32, var: *mut u8) {
     check_ready_operations();
 }
 
+// Helper function to check if any output of an operation is already claimed by an in-progress operation
+fn outputs_claimed_by_in_progress(op_id: u32) -> bool {
+    let runtime = RUNTIME.get().expect("Runtime not initialized");
+    let op = &runtime.model.operations[op_id as usize];
+    let in_progress = runtime.in_progress_operations.lock().unwrap();
+    
+    // If there are no in-progress operations, nothing is claimed
+    if in_progress.is_empty() {
+        return false;
+    }
+    
+    // Check each output of this operation
+    for &output_id in op.outputs {
+        // Check if any in-progress operation will produce this output
+        for &in_progress_op_id in &*in_progress {
+            let in_progress_op = &runtime.model.operations[in_progress_op_id as usize];
+            if in_progress_op.outputs.contains(&output_id) {
+                return true; // Found an in-progress operation that claims one of our outputs
+            }
+        }
+    }
+    
+    false
+}
+
 fn check_ready_operations() {
     let runtime = RUNTIME.get().expect("Runtime not initialized");
     
@@ -90,8 +115,15 @@ fn check_ready_operations() {
             
             let all_inputs_available = op.inputs.iter()
                 .all(|&input_id| computed_vars.contains_key(&input_id));
+            
+            // Check if at least one output is not computed yet
+            let has_uncomputed_outputs = op.outputs.iter()
+                .any(|&output_id| !computed_vars.contains_key(&output_id));
                 
-            if all_inputs_available {
+            // Also check if outputs are being computed by in-progress operations
+            let outputs_not_claimed = !outputs_claimed_by_in_progress(op_id as u32);
+                
+            if all_inputs_available && has_uncomputed_outputs && outputs_not_claimed {
                 // Mark as ready and send to worker queue
                 ready.insert(op_id as u32);
                 let sender = runtime.work_channel.0.lock().unwrap();
@@ -99,6 +131,16 @@ fn check_ready_operations() {
             }
         }
     }
+}
+
+// Helper function to check if all outputs of an operation are already computed
+fn all_outputs_computed(op_id: u32) -> bool {
+    let runtime = RUNTIME.get().expect("Runtime not initialized");
+    let op = &runtime.model.operations[op_id as usize];
+    let variables = runtime.computed_variables.read().unwrap();
+    
+    op.outputs.iter()
+        .all(|&output_id| variables.contains_key(&output_id))
 }
 
 fn worker_function() {
@@ -118,8 +160,14 @@ fn worker_function() {
                 .copied()
                 .collect();
             
+            // Filter out operations whose outputs are claimed by in-progress operations
+            let truly_available_ops: HashSet<_> = available_ops
+                .into_iter()
+                .filter(|&op_id| !outputs_claimed_by_in_progress(op_id))
+                .collect();
+            
             // Select the next operation
-            let selected = load_balancer.select_operation(&available_ops, runtime.model);
+            let selected = load_balancer.select_operation(&truly_available_ops, runtime.model);
             
             // If an operation was selected, mark it as in-progress and remove from ready queue
             if let Some(op_id) = selected {
@@ -151,13 +199,22 @@ fn worker_function() {
         };
         
         if let Some(op_id) = op_id {
-            // Skip if already completed (double check)
+            // Skip if already completed or if all outputs are already computed
             {
                 let completed = runtime.completed_operations.read().unwrap();
-                if completed.contains(&op_id) {
-                    // Remove from in-progress if it was already completed
+                if completed.contains(&op_id) || all_outputs_computed(op_id) {
+                    // Remove from in-progress if it's not needed
                     let mut in_progress = runtime.in_progress_operations.lock().unwrap();
                     in_progress.remove(&op_id);
+                    
+                    // If already completed, continue to next iteration
+                    if completed.contains(&op_id) {
+                        continue;
+                    }
+                    
+                    // If all outputs computed but operation wasn't marked completed, mark it now
+                    let mut completed = runtime.completed_operations.write().unwrap();
+                    completed.insert(op_id);
                     continue;
                 }
             }
